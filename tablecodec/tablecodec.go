@@ -31,9 +31,16 @@ import (
 )
 
 var (
-	tablePrefix     = []byte{'t'}
+	/* type:byte slice(dynamic array)
+	literal:construct a variable when it is declared
+	meaning:table id prefix*/
+	tablePrefix = []byte{'t'}
+	/* convert string to slice
+	recordPrefixSep:{'_','r'}
+	row id prefix*/
 	recordPrefixSep = []byte("_r")
-	indexPrefixSep  = []byte("_i")
+	// index id prefix
+	indexPrefixSep = []byte("_i")
 )
 
 const (
@@ -56,15 +63,19 @@ func TablePrefix() []byte {
 // appendTableRecordPrefix appends table record prefix  "t[tableID]_r".
 func appendTableRecordPrefix(buf []byte, tableID int64) []byte {
 	buf = append(buf, tablePrefix...)
+	// convert tableid to byte and appends to buf
 	buf = codec.EncodeInt(buf, tableID)
+	// append row id prefix
 	buf = append(buf, recordPrefixSep...)
 	return buf
 }
 
 // EncodeRowKeyWithHandle encodes the table id, row handle into a kv.Key
 func EncodeRowKeyWithHandle(tableID int64, handle int64) kv.Key {
+	// length:0 capacity:RecordRowKeyLen
 	buf := make([]byte, 0, RecordRowKeyLen)
 	buf = appendTableRecordPrefix(buf, tableID)
+	// "t[tableID]_r[rowHandle]"
 	buf = codec.EncodeInt(buf, handle)
 	return buf
 }
@@ -72,6 +83,16 @@ func EncodeRowKeyWithHandle(tableID int64, handle int64) kv.Key {
 // DecodeRecordKey decodes the key and gets the tableID, handle.
 func DecodeRecordKey(key kv.Key) (tableID int64, handle int64, err error) {
 	/* Your code here */
+	// Key represents high-level Key type
+	// len(int64):8
+	if len(key) != RecordRowKeyLen {
+		return 0, 0, errors.New("DecodeRecordKey error:length of key is not enough")
+	}
+	key, tableID, _ = codec.DecodeInt(key[1:])
+	key, handle, err = codec.DecodeInt(key[2:])
+	if (tableID == 0) || (handle == 0) {
+		return 0, 0, errors.New("DecodeRecordKey error:errors when decoding record key")
+	}
 	return
 }
 
@@ -95,6 +116,15 @@ func EncodeIndexSeekKey(tableID int64, idxID int64, encodedValue []byte) kv.Key 
 // DecodeIndexKeyPrefix decodes the key and gets the tableID, indexID, indexValues.
 func DecodeIndexKeyPrefix(key kv.Key) (tableID int64, indexID int64, indexValues []byte, err error) {
 	/* Your code here */
+	if len(key) <= RecordRowKeyLen {
+		return 0, 0, nil, errors.New("DecodeIndexKeyPrefix error:length of key is not enough")
+	}
+	key, tableID, _ = codec.DecodeInt(key[1:])
+	key, indexID, _ = codec.DecodeInt(key[2:])
+	indexValues = key[:]
+	if (tableID == 0) || (indexID == 0) || (indexValues == nil) {
+		return 0, 0, nil, errors.New("DecodeIndexKeyPrefix error:errors when decoding index key")
+	}
 	return tableID, indexID, indexValues, nil
 }
 

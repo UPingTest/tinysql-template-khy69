@@ -78,7 +78,7 @@ TiDB> select count(*) from person where region = 'north';
 
 常见的聚合有 max，min，sum 和 count 等。上面的语句只是输出了满足 region = ‘north’ 的行数，如果我们同时也想知道其他所有 region 的总人数呢？ 此时 `group by`就排上用场了：
 
-
+`GROUP BY` statement groups rows that have the same values into summary rows
 
 ```sql
 TiDB> select region, count(*) from person group by region;
@@ -91,7 +91,7 @@ TiDB> select region, count(*) from person group by region;
 2 row in set (0.01 sec)
 ```
 
-当然，对于聚合的结果我们可能还是需要过滤一些行，不过此时前面介绍的 where 语句就不能使用了，因为 where 后面的过滤条件是在 group by 之前生效的，在 group by 之后过滤需要使用 having:
+当然，对于**聚合的结果**我们可能还是需要过滤一些行，不过此时前面介绍的 where 语句就不能使用了，因为 where 后面的过滤条件是在 group by 之前生效的，在 group by 之后过滤需要使用 having:
 
 ```
 TiDB> select region, count(*) from person group by region having count(*) > 1;
@@ -141,6 +141,8 @@ TiDB> select name, address from person inner join address;
 ```
 
 但这样的信息产生的信息爆炸往往是我们不需要的，幸运的是我们可以指定组合任意行的策略，例如如果想要同时知道某个人的地址以及名字，那我们只需要取两张表中有相同 number 值的人接合在一起，这样只会产生 4 行结果：
+
+on:inner join on specific rows
 
 ```sql
 TiDB> select name, address from person inner join address on person.number = address.number;
